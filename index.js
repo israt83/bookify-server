@@ -100,38 +100,50 @@ async function run() {
 
       const result = await borrowsCollection.insertOne(borrowData);
       res.send(result);
+    });
 
-      // // check if its a duplicate request
-      const query = {
-        email: borrowData.email,
-        bookId: borrowData.bookId,
-      };
-      const alreadyBorrowed = await borrowsCollection.findOne(query);
-      console.log(alreadyBorrowed);
-      if (alreadyBorrowed) {
-        return res
-          .status(400)
-          .send("You have already placed a borrow on this book.");
-      }
-      // Update the book quantity in books collection
-      const updateDoc = {
-        $inc: { quantity: -1 },
-      };
-      const bookQuery = { _id: new ObjectId(borrowData.bookId) };
-      await booksCollection.updateOne(bookQuery, updateDoc);
-
+    // Get borrowed books by user email
+    app.get("/borrowed-books", async (req, res) => {
+      const { email } = req.query;
+      const query = { email: email };
+      const result = await borrowsCollection.find(query).toArray();
       res.send(result);
     });
 
+    app.post("/return", async (req, res) => {
+      const { bookId, borrowId } = req.body;
 
-    
+      try {
+        // Increase the book quantity by 1
+        // const bookQuery = { _id: new ObjectId(bookId) };
+        // const updateDoc = { $inc: { quantity: 1 } };
+        // await booksCollection.updateOne(bookQuery, updateDoc);
+
+        // Remove the borrow record
+        const borrowQuery = { _id: new ObjectId(borrowId) };
+        const result = await borrowsCollection.deleteOne(borrowQuery);
+
+        res.send(result);
+      } catch (err) {
+        console.error("Error returning book:", err);
+        res.status(500).send({ message: "Internal server error" });
+      }
+    });
+
     // Save a book data in db
-    app.post('/book', async (req, res) => {
-      const bookData = req.body
+    app.post("/book", async (req, res) => {
+      const bookData = req.body;
 
-      const result = await booksCollection.insertOne(bookData)
-      res.send(result)
-    })
+      // Ensure quantity is a number before inserting
+
+      try {
+        const result = await booksCollection.insertOne(bookData);
+        res.send(result);
+      } catch (err) {
+        console.error("Error saving book:", err);
+        res.status(500).send({ message: "Internal server error" });
+      }
+    });
 
     // get all jobs posted by a specific user
     // app.get('/books/:email', verifyToken, async (req, res) => {
