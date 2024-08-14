@@ -155,14 +155,6 @@ async function run() {
     //   res.send(result)
     // })
 
-    // delete a job data from db
-    // app.delete('/job/:id', async (req, res) => {
-    //   const id = req.params.id
-    //   const query = { _id: new ObjectId(id) }
-    //   const result = await jobsCollection.deleteOne(query)
-    //   res.send(result)
-    // })
-
     // update a job in db
     // app.put('/job/:id', verifyToken, async (req, res) => {
     //   const id = req.params.id
@@ -178,70 +170,49 @@ async function run() {
     //   res.send(result)
     // })
 
-    // get all bids for a user by email from db
-    // app.get('/my-bids/:email', verifyToken, async (req, res) => {
-    //   const email = req.params.email
-    //   const query = { email }
-    //   const result = await bidsCollection.find(query).toArray()
-    //   res.send(result)
-    // })
+    // app.get("/all-books", async (req, res) => {
+    //   const result = await booksCollection.find().toArray();
 
-    //Get all bid requests from db for job owner
-    // app.get('/bid-requests/:email', verifyToken, async (req, res) => {
-    //   const email = req.params.email
-    //   const query = { 'buyer.email': email }
-    //   const result = await bidsCollection.find(query).toArray()
-    //   res.send(result)
-    // })
+    //   res.send(result);
+    // });
+ 
 
-    // Update Bid status
-    // app.patch('/bid/:id', async (req, res) => {
-    //   const id = req.params.id
-    //   const status = req.body
-    //   const query = { _id: new ObjectId(id) }
-    //   const updateDoc = {
-    //     $set: status,
-    //   }
-    //   const result = await bidsCollection.updateOne(query, updateDoc)
-    //   res.send(result)
-    // })
+    // Get all books data from db for pagination
+    app.get('/all-books', async (req, res) => {
+      const size = parseInt(req.query.size)
+      const page = parseInt(req.query.page) - 1
+      const filter = req.query.filter
+      const sort = req.query.sort
+      const search = req.query.search
+      console.log(size, page)
 
-    // Get all jobs data from db for pagination
-    // app.get('/all-jobs', async (req, res) => {
-    //   const size = parseInt(req.query.size)
-    //   const page = parseInt(req.query.page) - 1
-    //   const filter = req.query.filter
-    //   const sort = req.query.sort
-    //   const search = req.query.search
-    //   console.log(size, page)
+      let query = {
+        name: { $regex: search, $options: 'i' },
+      }
+      if (filter) query.category = filter
+      let options = {}
+      if (sort) options = { sort: { deadline: sort === 'asc' ? 1 : -1 } }
+      const result = await booksCollection
+        .find(query, options)
+        .skip(page * size)
+        .limit(size)
+        .toArray()
 
-    //   let query = {
-    //     job_title: { $regex: search, $options: 'i' },
-    //   }
-    //   if (filter) query.category = filter
-    //   let options = {}
-    //   if (sort) options = { sort: { deadline: sort === 'asc' ? 1 : -1 } }
-    //   const result = await jobsCollection
-    //     .find(query, options)
-    //     .skip(page * size)
-    //     .limit(size)
-    //     .toArray()
-
-    //   res.send(result)
-    // })
+      res.send(result)
+    })
 
     // Get all jobs data count from db
-    // app.get('/jobs-count', async (req, res) => {
-    //   const filter = req.query.filter
-    //   const search = req.query.search
-    //   let query = {
-    //     job_title: { $regex: search, $options: 'i' },
-    //   }
-    //   if (filter) query.category = filter
-    //   const count = await jobsCollection.countDocuments(query)
+    app.get('/books-count', async (req, res) => {
+      const filter = req.query.filter
+      const search = req.query.search
+      let query = {
+        name: { $regex: search, $options: 'i' },
+      }
+      if (filter) query.category = filter
+      const count = await booksCollection.countDocuments(query)
 
-    //   res.send({ count })
-    // })
+      res.send({ count })
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
