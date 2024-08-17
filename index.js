@@ -145,23 +145,15 @@ async function run() {
       }
     });
 
-    // get all jobs posted by a specific user
-    // app.get('/books/:email', verifyToken, async (req, res) => {
-    //   const tokenEmail = req.user.email
-    //   const email = req.params.email
-    //   // if (tokenEmail !== email) {
-    //   //   return res.status(403).send({ message: 'forbidden access' })
-    //   // }
-    //   const query = { 'buyer.email': email }
-    //   const result = await booksCollection.find(query).toArray()
-    //   res.send(result)
-    // })
+    
+
+    
 
     // // Get all books data from db for pagination
     // app.get("/all-books", async (req, res) => {
     //   const size = parseInt(req.query.size);
     //   const page = parseInt(req.query.page) - 1;
-    //   const quantity = req.query.quantity;
+    //   const filter = req.query.filter
     //   const sort = req.query.sort;
     //   const search = req.query.search;
     //   console.log(size, page);
@@ -170,62 +162,92 @@ async function run() {
     //     name: { $regex: search, $options: "i" },
     //   };
 
-    //   // Apply the find for available books if requested
-    //  if(quantity){
-    //   quantity : {$gt : quantity}
-    //  }
-
-    //   let options = {};
-    //   if (sort) options = { sort: { rating: sort === "asc" ? 1 : -1 } };
+    //   if (filter) query.quantity = filter
+    //   let options = {}
+    //   if (sort) options = { sort: { deadline: sort === 'asc' ? 1 : -1 } }
     //   const result = await booksCollection
     //     .find(query, options)
     //     .skip(page * size)
     //     .limit(size)
-    //     .toArray();
+    //     .toArray()
 
-    //   res.send(result);
-    // });
-    // Get all books data from db for pagination
-    app.get("/all-books", async (req, res) => {
-      const size = parseInt(req.query.size);
-      const page = parseInt(req.query.page) - 1;
-      const quantityFilter = req.query.quantity; 
-      const sort = req.query.sort;
-      const search = req.query.search;
-
-      console.log(size, page);
-
-      // Base query for searching by name
-      let query = {
-        name: { $regex: search, $options: "i" },
-      };
-
-      // // Apply quantity filter if it exists
-      // if (quantityFilter === "available") {
-      //   query.quantity = { $gt: 0 }; // Only include books with quantity > 0
-      // }
-
-      // Sorting options
-      let options = {};
-      if (sort) options.sort = { rating: sort === "asc" ? 1 : -1 };
-
-      try {
-        const result = await booksCollection
-          .find(query, options)
-          .skip(page * size)
-          .limit(size)
-          .toArray();
-
-        res.send(result);
-      } catch (error) {
-        console.error("Error fetching books:", error);
-        res
-          .status(500)
-          .send({ error: "An error occurred while fetching books." });
-      }
-    });
-
+    //   res.send(result)
+    // })
+  
+    //   // Get all jobs data count from db
+    //   app.get('/books-count', async (req, res) => {
+    //     const filter = req.query.filter
+    //     const search = req.query.search
+    //     let query = {
+    //       name: { $regex: search, $options: 'i' },
+    //     }
+    //     if (filter) query.quantity = filter
+    //     const count = await booksCollection.countDocuments(query)
+  
+    //     res.send({ count })
+    //   })
+  
  
+    // Get all books data from db for pagination
+app.get("/all-books", async (req, res) => {
+  const size = parseInt(req.query.size);
+  const page = parseInt(req.query.page) - 1;
+  const filter = req.query.filter;
+  const sort = req.query.sort;
+  const search = req.query.search;
+
+  let query = {
+    name: { $regex: search, $options: "i" },
+  };
+
+  // Check if the filter is for available books (quantity > 0)
+  if (filter === "quantity>0") {
+    query.quantity = { $gt: 0 };
+  }
+
+  let options = {};
+  if (sort) options.sort = { rating: sort === "asc" ? 1 : -1 };
+
+  try {
+    const result = await booksCollection
+      .find(query, options)
+      .skip(page * size)
+      .limit(size)
+      .toArray();
+
+    res.send(result);
+  } catch (error) {
+    console.error("Error fetching books:", error);
+    res
+      .status(500)
+      .send({ error: "An error occurred while fetching books." });
+  }
+});
+
+// Get all books data count from db
+app.get('/books-count', async (req, res) => {
+  const filter = req.query.filter;
+  const search = req.query.search;
+
+  let query = {
+    name: { $regex: search, $options: 'i' },
+  };
+
+  if (filter === "quantity>0") {
+    query.quantity = { $gt: 0 };
+  }
+
+  try {
+    const count = await booksCollection.countDocuments(query);
+    res.send({ count });
+  } catch (error) {
+    console.error("Error fetching books count:", error);
+    res
+      .status(500)
+      .send({ error: "An error occurred while fetching books count." });
+  }
+});
+
     
     // update a book in db
     app.put("/books/:id", async (req, res) => {
