@@ -48,34 +48,36 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const booksCollection = client.db("libraryManagement").collection("books");
-    const borrowsCollection = client.db("libraryManagement").collection("borrows");
+    const borrowsCollection = client
+      .db("libraryManagement")
+      .collection("borrows");
 
     // jwt generate
-    app.post('/jwt', async (req, res) => {
-      const user = req.body
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: '365d',
-      })
+        expiresIn: "365d",
+      });
       res
-       .cookie('token', token, {
+        .cookie("token", token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
         })
-        .send({ success: true })
-    })
+        .send({ success: true });
+    });
 
     // Clear token on logout
-    app.get('/logout', (req, res) => {
+    app.get("/logout", (req, res) => {
       res
-        .clearCookie('token', {
+        .clearCookie("token", {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
           maxAge: 0,
         })
-        .send({ success: true })
-    })
+        .send({ success: true });
+    });
 
     // Get all books data from db
     app.get("/books", async (req, res) => {
@@ -155,64 +157,96 @@ async function run() {
     //   res.send(result)
     // })
 
-    // update a job in db
-    // app.put('/job/:id', verifyToken, async (req, res) => {
-    //   const id = req.params.id
-    //   const jobData = req.body
-    //   const query = { _id: new ObjectId(id) }
-    //   const options = { upsert: true }
-    //   const updateDoc = {
-    //     $set: {
-    //       ...jobData,
-    //     },
-    //   }
-    //   const result = await jobsCollection.updateOne(query, updateDoc, options)
-    //   res.send(result)
-    // })
-
+    // // Get all books data from db for pagination
     // app.get("/all-books", async (req, res) => {
-    //   const result = await booksCollection.find().toArray();
+    //   const size = parseInt(req.query.size);
+    //   const page = parseInt(req.query.page) - 1;
+    //   const quantity = req.query.quantity;
+    //   const sort = req.query.sort;
+    //   const search = req.query.search;
+    //   console.log(size, page);
+
+    //   let query = {
+    //     name: { $regex: search, $options: "i" },
+    //   };
+
+    //   // Apply the find for available books if requested
+    //  if(quantity){
+    //   quantity : {$gt : quantity}
+    //  }
+
+    //   let options = {};
+    //   if (sort) options = { sort: { rating: sort === "asc" ? 1 : -1 } };
+    //   const result = await booksCollection
+    //     .find(query, options)
+    //     .skip(page * size)
+    //     .limit(size)
+    //     .toArray();
 
     //   res.send(result);
     // });
- 
-
     // Get all books data from db for pagination
-    app.get('/all-books', async (req, res) => {
-      const size = parseInt(req.query.size)
-      const page = parseInt(req.query.page) - 1
-      const filter = req.query.filter
-      const sort = req.query.sort
-      const search = req.query.search
-      console.log(size, page)
+    app.get("/all-books", async (req, res) => {
+      const size = parseInt(req.query.size);
+      const page = parseInt(req.query.page) - 1;
+      const quantityFilter = req.query.quantity; 
+      const sort = req.query.sort;
+      const search = req.query.search;
 
+      console.log(size, page);
+
+      // Base query for searching by name
       let query = {
-        name: { $regex: search, $options: 'i' },
+        name: { $regex: search, $options: "i" },
+      };
+
+      // // Apply quantity filter if it exists
+      // if (quantityFilter === "available") {
+      //   query.quantity = { $gt: 0 }; // Only include books with quantity > 0
+      // }
+
+      // Sorting options
+      let options = {};
+      if (sort) options.sort = { rating: sort === "asc" ? 1 : -1 };
+
+      try {
+        const result = await booksCollection
+          .find(query, options)
+          .skip(page * size)
+          .limit(size)
+          .toArray();
+
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching books:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while fetching books." });
       }
-      if (filter) query.category = filter
-      let options = {}
-      if (sort) options = { sort: { deadline: sort === 'asc' ? 1 : -1 } }
-      const result = await booksCollection
-        .find(query, options)
-        .skip(page * size)
-        .limit(size)
-        .toArray()
+    });
 
-      res.send(result)
-    })
+ 
+    
+    // update a book in db
+    app.put("/books/:id", async (req, res) => {
+      const id = req.params.id;
+      const bookData = req.body;
+      const query = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          ...bookData,
+        },
+      };
+      const result = await booksCollection.updateOne(query, updateDoc, options);
+      res.send(result);
+    });
 
-    // Get all jobs data count from db
-    app.get('/books-count', async (req, res) => {
-      const filter = req.query.filter
-      const search = req.query.search
-      let query = {
-        name: { $regex: search, $options: 'i' },
-      }
-      if (filter) query.category = filter
-      const count = await booksCollection.countDocuments(query)
+    app.get("/all-books", async (req, res) => {
+      const result = await booksCollection.find().toArray();
 
-      res.send({ count })
-    })
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
