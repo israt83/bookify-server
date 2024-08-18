@@ -94,11 +94,77 @@ async function run() {
       res.send(result);
     });
 
-    // Save a borrow data in db
+    // // Save a borrow data in db
+    // app.post("/borrow", async (req, res) => {
+    //   const borrowData = req.body;
+
+    //   const result = await borrowsCollection.insertOne(borrowData);
+    //   res.send(result);
+    // });
+    // // Save a borrow data in db
+    // app.post("/borrow", async (req, res) => {
+    //   const borrowData = req.body;
+
+    //   // Check if it's a duplicate request
+    //   const query = {
+    //     email: borrowData.email,
+    //     bookId: borrowData.bookId,
+    //   };
+    //   const alreadyBorrowed = await borrowsCollection.findOne(query);
+    //   console.log(alreadyBorrowed);
+
+    //   if (alreadyBorrowed) {
+    //     return res.status(400).send('You have already borrowed this book.');
+    //   }
+
+    //   const result = await borrowsCollection.insertOne(borrowData);
+
+    //   // Update the quantity in the books collection
+    //   // const updateDoc = {
+    //   //   $inc: { quantity: -1 }, // Decrease the quantity by 1
+    //   // };
+    //   // const bookQuery = { _id: new ObjectId(borrowData.bookId) };
+
+    //   // res.send(result);
+
+    //    // update the quantity in the books collection
+    //    const updateDoc = {
+    //     $inc: { quantity: -1 },
+    //   }
+    //   const bookQuery = { _id: new ObjectId(borrowData.bookId) }
+    //   const updateBookCount = await booksCollection.updateOne(bookQuery, updateDoc)
+    //   console.log(updateBookCount)
+    //   res.send(result)
+    // });
+
     app.post("/borrow", async (req, res) => {
       const borrowData = req.body;
+      console.log("Received borrow data:", borrowData);
+
+      // Check if it's a duplicate request
+      const query = {
+        email: borrowData.email,
+        bookId: borrowData.bookId,
+      };
+      const alreadyBorrowed = await borrowsCollection.findOne(query);
+      console.log(alreadyBorrowed);
+
+      if (alreadyBorrowed) {
+        return res.status(400).send("You have already borrowed this book.");
+      }
 
       const result = await borrowsCollection.insertOne(borrowData);
+
+      // Update the quantity in the books collection
+      const updateDoc = {
+        $inc: { quantity: -1 },
+      };
+      const bookQuery = { _id: new ObjectId(borrowData.bookId) };
+      const updateBookCount = await booksCollection.updateOne(
+        bookQuery,
+        updateDoc
+      );
+      console.log(updateBookCount);
       res.send(result);
     });
 
@@ -131,7 +197,7 @@ async function run() {
     });
 
     // Save a book data in db
-    app.post("/book", async (req, res) => {
+    app.post("/book", verifyToken, async (req, res) => {
       const bookData = req.body;
 
       // Ensure quantity is a number before inserting
@@ -144,10 +210,6 @@ async function run() {
         res.status(500).send({ message: "Internal server error" });
       }
     });
-
-    
-
-    
 
     // // Get all books data from db for pagination
     // app.get("/all-books", async (req, res) => {
@@ -173,7 +235,7 @@ async function run() {
 
     //   res.send(result)
     // })
-  
+
     //   // Get all jobs data count from db
     //   app.get('/books-count', async (req, res) => {
     //     const filter = req.query.filter
@@ -183,74 +245,72 @@ async function run() {
     //     }
     //     if (filter) query.quantity = filter
     //     const count = await booksCollection.countDocuments(query)
-  
+
     //     res.send({ count })
     //   })
-  
- 
+
     // Get all books data from db for pagination
-app.get("/all-books", async (req, res) => {
-  const size = parseInt(req.query.size);
-  const page = parseInt(req.query.page) - 1;
-  const filter = req.query.filter;
-  const sort = req.query.sort;
-  const search = req.query.search;
+    app.get("/all-books", async (req, res) => {
+      const size = parseInt(req.query.size);
+      const page = parseInt(req.query.page) - 1;
+      const filter = req.query.filter;
+      const sort = req.query.sort;
+      const search = req.query.search;
 
-  let query = {
-    name: { $regex: search, $options: "i" },
-  };
+      let query = {
+        name: { $regex: search, $options: "i" },
+      };
 
-  // Check if the filter is for available books (quantity > 0)
-  if (filter === "quantity>0") {
-    query.quantity = { $gt: 0 };
-  }
+      // Check if the filter is for available books (quantity > 0)
+      if (filter === "quantity>0") {
+        query.quantity = { $gt: 0 };
+      }
 
-  let options = {};
-  if (sort) options.sort = { rating: sort === "asc" ? 1 : -1 };
+      let options = {};
+      if (sort) options.sort = { rating: sort === "asc" ? 1 : -1 };
 
-  try {
-    const result = await booksCollection
-      .find(query, options)
-      .skip(page * size)
-      .limit(size)
-      .toArray();
+      try {
+        const result = await booksCollection
+          .find(query, options)
+          .skip(page * size)
+          .limit(size)
+          .toArray();
 
-    res.send(result);
-  } catch (error) {
-    console.error("Error fetching books:", error);
-    res
-      .status(500)
-      .send({ error: "An error occurred while fetching books." });
-  }
-});
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching books:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while fetching books." });
+      }
+    });
 
-// Get all books data count from db
-app.get('/books-count', async (req, res) => {
-  const filter = req.query.filter;
-  const search = req.query.search;
+    // Get all books data count from db
+    app.get("/books-count", async (req, res) => {
+      const filter = req.query.filter;
+      const search = req.query.search;
 
-  let query = {
-    name: { $regex: search, $options: 'i' },
-  };
+      let query = {
+        name: { $regex: search, $options: "i" },
+      };
 
-  if (filter === "quantity>0") {
-    query.quantity = { $gt: 0 };
-  }
+      if (filter === "quantity>0") {
+        query.quantity = { $gt: 0 };
+      }
 
-  try {
-    const count = await booksCollection.countDocuments(query);
-    res.send({ count });
-  } catch (error) {
-    console.error("Error fetching books count:", error);
-    res
-      .status(500)
-      .send({ error: "An error occurred while fetching books count." });
-  }
-});
+      try {
+        const count = await booksCollection.countDocuments(query);
+        res.send({ count });
+      } catch (error) {
+        console.error("Error fetching books count:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while fetching books count." });
+      }
+    });
 
-    
     // update a book in db
-    app.put("/books/:id", async (req, res) => {
+    app.put("/books/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const bookData = req.body;
       const query = { _id: new ObjectId(id) };
