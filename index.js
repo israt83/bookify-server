@@ -34,7 +34,6 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.mq0mae1.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.nghfy93.mongodb.net/?appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -101,45 +100,9 @@ async function run() {
     //   const result = await borrowsCollection.insertOne(borrowData);
     //   res.send(result);
     // });
-    // // Save a borrow data in db
-    // app.post("/borrow", async (req, res) => {
-    //   const borrowData = req.body;
-
-    //   // Check if it's a duplicate request
-    //   const query = {
-    //     email: borrowData.email,
-    //     bookId: borrowData.bookId,
-    //   };
-    //   const alreadyBorrowed = await borrowsCollection.findOne(query);
-    //   console.log(alreadyBorrowed);
-
-    //   if (alreadyBorrowed) {
-    //     return res.status(400).send('You have already borrowed this book.');
-    //   }
-
-    //   const result = await borrowsCollection.insertOne(borrowData);
-
-    //   // Update the quantity in the books collection
-    //   // const updateDoc = {
-    //   //   $inc: { quantity: -1 }, // Decrease the quantity by 1
-    //   // };
-    //   // const bookQuery = { _id: new ObjectId(borrowData.bookId) };
-
-    //   // res.send(result);
-
-    //    // update the quantity in the books collection
-    //    const updateDoc = {
-    //     $inc: { quantity: -1 },
-    //   }
-    //   const bookQuery = { _id: new ObjectId(borrowData.bookId) }
-    //   const updateBookCount = await booksCollection.updateOne(bookQuery, updateDoc)
-    //   console.log(updateBookCount)
-    //   res.send(result)
-    // });
-
+    // Save a borrow data in db
     app.post("/borrow", async (req, res) => {
       const borrowData = req.body;
-      console.log("Received borrow data:", borrowData);
 
       // Check if it's a duplicate request
       const query = {
@@ -150,22 +113,18 @@ async function run() {
       console.log(alreadyBorrowed);
 
       if (alreadyBorrowed) {
-        return res.status(400).send("You have already borrowed this book.");
+        return res.status(400).send('You have already borrowed this book.');
       }
 
       const result = await borrowsCollection.insertOne(borrowData);
 
-      // Update the quantity in the books collection
-      const updateDoc = {
-        $inc: { quantity: -1 },
-      };
-      const bookQuery = { _id: new ObjectId(borrowData.bookId) };
-      const updateBookCount = await booksCollection.updateOne(
-        bookQuery,
-        updateDoc
-      );
-      console.log(updateBookCount);
-      res.send(result);
+      //  const updateDoc = {
+      //   $inc: { quantity: -1 },
+      // }
+      // const bookQuery = { _id: new ObjectId(borrowData.bookId) }
+      // const updateBookCount = await booksCollection.updateOne(bookQuery, updateDoc)
+      // console.log(updateBookCount)
+      res.send(result)
     });
 
     // Get borrowed books by user email
@@ -210,44 +169,7 @@ async function run() {
         res.status(500).send({ message: "Internal server error" });
       }
     });
-
-    // // Get all books data from db for pagination
-    // app.get("/all-books", async (req, res) => {
-    //   const size = parseInt(req.query.size);
-    //   const page = parseInt(req.query.page) - 1;
-    //   const filter = req.query.filter
-    //   const sort = req.query.sort;
-    //   const search = req.query.search;
-    //   console.log(size, page);
-
-    //   let query = {
-    //     name: { $regex: search, $options: "i" },
-    //   };
-
-    //   if (filter) query.quantity = filter
-    //   let options = {}
-    //   if (sort) options = { sort: { deadline: sort === 'asc' ? 1 : -1 } }
-    //   const result = await booksCollection
-    //     .find(query, options)
-    //     .skip(page * size)
-    //     .limit(size)
-    //     .toArray()
-
-    //   res.send(result)
-    // })
-
-    //   // Get all jobs data count from db
-    //   app.get('/books-count', async (req, res) => {
-    //     const filter = req.query.filter
-    //     const search = req.query.search
-    //     let query = {
-    //       name: { $regex: search, $options: 'i' },
-    //     }
-    //     if (filter) query.quantity = filter
-    //     const count = await booksCollection.countDocuments(query)
-
-    //     res.send({ count })
-    //   })
+ 
 
     // Get all books data from db for pagination
     app.get("/all-books", async (req, res) => {
