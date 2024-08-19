@@ -8,7 +8,9 @@ const port = process.env.PORT || 5000;
 const app = express();
 
 const corsOptions = {
-  origin: ["http://localhost:5173", "http://localhost:5174" ,"https://library-managment-system-797c1.web.app/"],
+  origin: ["http://localhost:5173", "http://localhost:5174" ,"https://library-managment-system-797c1.web.app/",
+    'https://radiant-pothos-5dbce0.netlify.app/'
+  ],
   credentials: true,
   optionSuccessStatus: 200,
 };
