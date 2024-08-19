@@ -8,7 +8,7 @@ const port = process.env.PORT || 5000;
 const app = express();
 
 const corsOptions = {
-  origin: ["http://localhost:5173", "http://localhost:5174"],
+  origin: ["http://localhost:5173", "http://localhost:5174" ,"https://library-managment-system-797c1.web.app/"],
   credentials: true,
   optionSuccessStatus: 200,
 };
@@ -16,22 +16,21 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
-// verify jwt middleware
+
+// Verify JWT middleware
 const verifyToken = (req, res, next) => {
   const token = req.cookies?.token;
   if (!token) return res.status(401).send({ message: "unauthorized access" });
-  if (token) {
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-      if (err) {
-        console.log(err);
-        return res.status(401).send({ message: "unauthorized access" });
-      }
-      console.log(decoded);
 
-      req.user = decoded;
-      next();
-    });
-  }
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      console.log(err);
+      return res.status(401).send({ message: "unauthorized access" });
+    }
+
+    req.user = decoded;
+    next();
+  });
 };
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.nghfy93.mongodb.net/?appName=Cluster0`;
@@ -51,7 +50,7 @@ async function run() {
       .db("libraryManagement")
       .collection("borrows");
 
-    // jwt generate
+    // JWT generate 
     app.post("/jwt", async (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
@@ -65,7 +64,6 @@ async function run() {
         })
         .send({ success: true });
     });
-
     // Clear token on logout
     app.get("/logout", (req, res) => {
       res
@@ -113,7 +111,7 @@ async function run() {
       console.log(alreadyBorrowed);
 
       if (alreadyBorrowed) {
-        return res.status(400).send('You have already borrowed this book.');
+        return res.status(400).send("You have already borrowed this book.");
       }
 
       const result = await borrowsCollection.insertOne(borrowData);
@@ -124,7 +122,7 @@ async function run() {
       // const bookQuery = { _id: new ObjectId(borrowData.bookId) }
       // const updateBookCount = await booksCollection.updateOne(bookQuery, updateDoc)
       // console.log(updateBookCount)
-      res.send(result)
+      res.send(result);
     });
 
     // Get borrowed books by user email
@@ -155,11 +153,12 @@ async function run() {
       }
     });
 
-    // Save a book data in db
+    // Add a book data in DB with JWT verification
     app.post("/book", verifyToken, async (req, res) => {
       const bookData = req.body;
 
-      // Ensure quantity is a number before inserting
+     
+      bookData.createdBy = req.user.id; 
 
       try {
         const result = await booksCollection.insertOne(bookData);
@@ -169,7 +168,6 @@ async function run() {
         res.status(500).send({ message: "Internal server error" });
       }
     });
- 
 
     // Get all books data from db for pagination
     app.get("/all-books", async (req, res) => {
